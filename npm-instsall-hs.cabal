@@ -1,6 +1,6 @@
 cabal-version: 2.2
 
--- This file has been generated from package.yaml by hpack version 0.35.1.
+-- This file has been generated from package.yaml by hpack version 0.35.2.
 --
 -- see: https://github.com/sol/hpack
 
@@ -25,16 +25,18 @@ source-repository head
 
 library
   exposed-modules:
-      Lib
+      Data.SemVer.Parser
   other-modules:
-      Paths_npm_instsall_hs
-  autogen-modules:
-      Paths_npm_instsall_hs
+      Data.SemVer.Internal
   hs-source-dirs:
       src
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
+  build-tools:
+      happy
   build-depends:
-      base >=4.7 && <5
+      array
+    , base >=4.7 && <5
+    , semver
   default-language: Haskell2010
 
 executable npm-instsall-hs-exe
@@ -47,8 +49,10 @@ executable npm-instsall-hs-exe
       app
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      array
+    , base >=4.7 && <5
     , npm-instsall-hs
+    , semver
   default-language: Haskell2010
 
 test-suite npm-instsall-hs-test
@@ -62,6 +66,9 @@ test-suite npm-instsall-hs-test
       test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      HUnit
+    , array
+    , base >=4.7 && <5
     , npm-instsall-hs
+    , semver
   default-language: Haskell2010

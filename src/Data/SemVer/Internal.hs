@@ -55,75 +55,15 @@ data Digit
   | DigitPositive PositiveDigit
   deriving (Show, Eq)
 
-data PositiveDigit
-  = Token1
-  | Token2
-  | Token3
-  | Token4
-  | Token5
-  | Token6
-  | Token7
-  | Token8
-  | Token9
-  deriving (Show, Eq)
+type PositiveDigit = Int
 
-data Letter
-  = TokenA
-  | TokenB
-  | TokenC
-  | TokenD
-  | TokenE
-  | TokenF
-  | TokenG
-  | TokenH
-  | TokenI
-  | TokenJ
-  | TokenK
-  | TokenL
-  | TokenM
-  | TokenN
-  | TokenO
-  | TokenP
-  | TokenQ
-  | TokenR
-  | TokenS
-  | TokenT
-  | TokenU
-  | TokenV
-  | TokenW
-  | TokenX
-  | TokenY
-  | TokenZ
-  | Token_a
-  | Token_b
-  | Token_c
-  | Token_d
-  | Token_e
-  | Token_f
-  | Token_g
-  | Token_h
-  | Token_i
-  | Token_j
-  | Token_k
-  | Token_l
-  | Token_m
-  | Token_n
-  | Token_o
-  | Token_p
-  | Token_q
-  | Token_r
-  | Token_s
-  | Token_t
-  | Token_u
-  | Token_v
-  | Token_w
-  | Token_x
-  | Token_y
-  | Token_z
-  deriving (Show, Eq)
+type Letter = String
+
 
 data Token
-  = TokenZero
+  = TokenIdentifier String
+  | TokenPositiveDigit Int
+  | TokenZero
   | TokenDot
   | TokenPlus
   | TokenHyphen

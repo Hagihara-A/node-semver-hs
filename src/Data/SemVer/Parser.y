@@ -4,13 +4,12 @@ import Data.SemVer(version)
 import Data.SemVer.Internal
 }
 
-%name analyze 'valid semver'
-%tokentype { Token }
+%name analyze valid_semver
 %error { parseError }
 
 %token
-    'letter' { TokenLetter $$ }
-    'positive digit' { TokenPositiveDigit $$ }
+    letter { TokenIdentifier $$ }
+    positive_digit { TokenPositiveDigit $$ }
     '0' { TokenZero }
     '.' { TokenDot }
     '+' { TokenPlus }
@@ -19,78 +18,79 @@ import Data.SemVer.Internal
 
 %%
 
-'valid semver' :: { ValidSemVer }
-    : 'version core' { ValidSemVer $1 [] [] }
-    | 'version core' '-' 'pre-release' { ValidSemVer $1 $3 []}
-    | 'version core' '+' 'build' { ValidSemVer $1 [] $3 }
-    | 'version core' '-' 'pre-release' '+' 'build' { ValidSemVer $1 $3 $5} 
+valid_semver :: { ValidSemVer }
+    : version_core { ValidSemVer $1 [] [] }
+    | version_core '-' pre_release { ValidSemVer $1 $3 []}
+    | version_core '+' build { ValidSemVer $1 [] $3 }
+    | version_core '-' pre_release '+' build { ValidSemVer $1 $3 $5} 
 
-'version core' :: { VersionCore }
-     : 'major' '.' 'minor' '.' 'patch' {VersionCore $1 $3 $5}
+version_core :: { VersionCore }
+     : major '.' minor '.' patch {VersionCore $1 $3 $5}
 
-'major' : 'numeric identifier' {$1}
+major : numeric_identifier {$1}
 
-'minor' : 'numeric identifier' {$1}
+minor : numeric_identifier {$1}
 
-'patch' : 'numeric identifier' {$1}
+patch : numeric_identifier {$1}
 
-'pre-release' :: { PreRelease }
-    : 'dot-separated pre-release identifiers' {$1}
+pre_release :: { PreRelease }
+    : dot_separated_pre_release_identifiers {$1}
 
-'dot-separated pre-release identifiers' :: { DotSeparatedPreReleaseIdentifiers }
-    : 'pre-release identifier' {[$1]}
-    | 'pre-release identifier' '.' 'dot-separated pre-release identifiers' {$1:$3}
+dot_separated_pre_release_identifiers :: { DotSeparatedPreReleaseIdentifiers }
+    : pre_release_identifier {[$1]}
+    | pre_release_identifier '.' dot_separated_pre_release_identifiers {$1:$3}
 
-'build' : 'dot-separated build identifiers' {$1}
+build : dot_separated_build_identifiers {$1}
 
-'dot-separated build identifiers' :: { DotSepBuildIdentifiers }
-    : 'build identifier' {[$1]}
-    | 'build identifier' '.' 'dot-separated build identifiers' { $1:$3 }
+dot_separated_build_identifiers :: { DotSepBuildIdentifiers }
+    : build_identifier {[$1]}
+    | build_identifier '.' dot_separated_build_identifiers { $1:$3 }
 
-'pre-release identifier' :: { PreReleaseIdentifier }
-    : 'alphanumeric identifier' { PreReleaseIdAlphaNum $1 }
-    | 'numeric identifier' { PreReleaseIdNum $1}
+pre_release_identifier :: { PreReleaseIdentifier }
+    : alphanumeric_identifier { PreReleaseIdAlphaNum $1 }
+    | numeric_identifier { PreReleaseIdNum $1}
 
-'build identifier' :: { BuildIdentifier }
-    : 'alphanumeric identifier' {BuildIdAlphaNum $1}
-    | 'digits' {BuildIdDigits $1}
+build_identifier :: { BuildIdentifier }
+    : alphanumeric_identifier {BuildIdAlphaNum $1}
+    | digits {BuildIdDigits $1}
 
-'alphanumeric identifier' 
-    : 'non-digit' {AlphaNumId1 $1 []}
-    | 'non-digit' 'identifier characters' {AlphaNumId1 $1 $2}
-    | 'identifier characters' 'non-digit' { AlphaNumId2 $1 $2 []}
-    | 'identifier characters' 'non-digit' 'identifier characters' { AlphaNumId2 $1 $2 $3}
+alphanumeric_identifier 
+    : non_digit {AlphaNumId1 $1 []}
+    | non_digit identifier_characters {AlphaNumId1 $1 $2}
+    | identifier_characters non_digit { AlphaNumId2 $1 $2 []}
+    | identifier_characters non_digit identifier_characters { AlphaNumId2 $1 $2 $3}
 
-'numeric identifier' 
+version_identifier
+    : x { VerIdAny }
+    | X { VerIdAny }
+    | '*' { VerIdAny }
+    | numeric_identifier { VerIdNum $1 }
+
+numeric_identifier
     : '0' { NumIdZero }
-    | 'positive digit' { NumId $1 [] }
-    | 'positive digit' 'digits' { NumId $1 $2}
+    | positive_digit { NumId $1 [] }
+    | positive_digit digits { NumId $1 $2}
 
-'identifier characters'
-    : 'identifier character' { [$1] }
-    | 'identifier character' 'identifier characters' { $1:$2 }
+identifier_characters
+    : identifier_character { [$1] }
+    | identifier_character identifier_characters { $1:$2 }
 
-'identifier character' 
-    : 'digit' { IdCharDigit $1 }
-    | 'non-digit' { IdCharNonDigit $1}
+identifier_character 
+    : digit { IdCharDigit $1 }
+    | non_digit { IdCharNonDigit $1}
 
-'non-digit' :: { NonDigit }
-    : 'letter' { NonDigitLetter $1 }
+non_digit :: { NonDigit }
+    : letter { NonDigitLetter $1 }
     | '-' { NonDigitHyphen }
 
-'digits' :: { Digits }
-    : 'digit' {[$1]}
-    | 'digit' 'digits' {$1:$2}
+digits :: { Digits }
+    : digit {[$1]}
+    | digit digits {$1:$2}
 
-'digit' :: { Digit }
+digit :: { Digit }
     : '0' { DigitZero }
-    | 'positive digit' {DigitPositive $1}
+    | positive_digit { DigitPositive $1 }
 
 {
-
-parseError :: [Token] -> a
-parseError _ = error "Parse error"
-
-parse :: String -> ValidSemVer
-parse = analyze . tokenize
+parse = makeParse analyze
 }

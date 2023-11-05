@@ -1,15 +1,13 @@
 {
-module Data.SemVer.Lexer where
-import Data.SemVer.Internal
+module Data.SemVer.Node.Lexer(lexer) where
+import Data.SemVer.Node.Internal
 }
 
 %wrapper "basic"
 
 tokens :-
-    $white { const TokenSpaces }
     [\-\+]^[\-a-zA-Z0-9]+ { TokenIdentifier }
     [1-9][0-9]* { TokenDigits . read }
-    0 { const TokenZero }
     "." { const TokenDot }
     "-" { const TokenHyphen }
     " - " { const TokenHyphenSep }

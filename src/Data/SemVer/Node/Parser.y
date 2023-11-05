@@ -1,17 +1,14 @@
 {
-module Data.SemVer.Parser(fromString) where
-import Data.SemVer(version)
-import Data.SemVer.Internal
-import Data.SemVer.Lexer(alexScanTokens)
+module Data.SemVer.Node.Parser(parser) where
+import Data.SemVer.Node.Internal
+import Data.SemVer.Node.Lexer(lexer)
 }
 
-%name parse range_set
 %error { parseError }
 %tokentype { Token }
 %token
     identifier_characters { TokenIdentifier $$ }
     digits { TokenDigits $$ }
-    '0' { TokenZero }
     '.' { TokenDot }
     '+' { TokenPlus }
     '-' { TokenHyphen }
@@ -25,7 +22,6 @@ import Data.SemVer.Lexer(alexScanTokens)
     '<=' { TokenLte }
     '=' { TokenEq }
     '||' { TokenOr }
-    spaces { TokenSpaces }
     x { TokenX }
     X { TokenX }
 
@@ -33,13 +29,6 @@ import Data.SemVer.Lexer(alexScanTokens)
 
 range_set :: { RangeSet }
     : range { [$1] }
-    | range_set logical_or range { $3:$1 }
-
-logical_or :: { () }
-    : spaces '||' spaces { () }
-    | spaces '||' { () }
-    | '||' spaces { () } 
-    | '||' { () }
 
 range :: { Range }
     : hyphen { RangeHyphen $1 }
@@ -71,9 +60,6 @@ compare :: { Compare }
 partial :: { Partial }
     : {- empty -} { Partial0 }
     | any { Partial0 } -- x
-    | any '.' any { Partial0 } -- x.x
-    | any '.' any '.' any { Partial0 } -- x.x.x
-    | any '.' any '.' any qualifier { Partial0Q $6 } -- x.x.x-pre
 
     | nr { Partial1 $1 } -- 1
     | nr '.' any { Partial1 $1 } -- 1.x
@@ -91,8 +77,6 @@ any
     | '*' { () }
 
 nr :: { Nr }
-    : '0' { 0 }
-    | digits { $1 }
 
 tilde :: { Tilde }
     : '~' partial { Tilde $2 }
@@ -120,5 +104,4 @@ part :: { Part }
     | identifier_characters { PartId $1 }
 
 {
-fromString = parse . alexScanTokens
 }

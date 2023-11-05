@@ -69,20 +69,30 @@ compare :: { Compare }
     | '=' { CompEq }
 
 partial :: { Partial }
-    : xr { Partial1 $1 }
-    | xr '.' xr { Partial2 $1 $3}
-    | xr '.' xr '.' xr { Partial3 $1 $3 $5}
-    | xr '.' xr '.' xr qualifier { Partial4 $1 $3 $5 $6}
+    : {- empty -} { Partial0 }
+    | any { Partial0 } -- x
+    | any '.' any { Partial0 } -- x.x
+    | any '.' any '.' any { Partial0 } -- x.x.x
+    | any '.' any '.' any qualifier { Partial0Q $6 } -- x.x.x-pre
 
-xr :: { Xr }
-    : X { XrAny }
-    | x { XrAny }
-    | '*' { XrAny }
-    | nr { XrNr $1 }
+    | nr { Partial1 $1 } -- 1
+    | nr '.' any { Partial1 $1 } -- 1.x
+    | nr '.' any '.' any { Partial1 $1 } -- 1.x.x
+    | nr '.' any '.' any qualifier { Partial1Q $1 $6 } -- 1.x.x-pre
+
+    | nr '.' nr '.' any  { Partial2 $1 $3 } -- 1.2.x
+    | nr '.' nr '.' any qualifier  { Partial2Q $1 $3 $6 } -- 1.2.x-pre
+
+    | nr '.' nr '.' nr  qualifier { Partial3 $1 $3 $5 $6 } -- 1.2.3-pre
+
+any
+    : x { () }
+    | X { () }
+    | '*' { () }
 
 nr :: { Nr }
-    : '0' { NrZero }
-    | digits { NrDigits $1 }
+    : '0' { 0 }
+    | digits { $1 }
 
 tilde :: { Tilde }
     : '~' partial { Tilde $2 }
@@ -90,10 +100,10 @@ caret :: { Caret }
     : '^' partial { Caret $2 }
 
 qualifier :: { Qualifier }
-    : {- empty -} { Qualifier Nothing Nothing }
-    | '-' pre { Qualifier (Just $2) Nothing }
-    | '+' build { Qualifier (Nothing) (Just $2) }
-    | '-' pre '+' build { Qualifier (Just $2) (Just $4) }
+    : {- empty -} { Qualifier [] [] }
+    | '-' pre { Qualifier $2 [] }
+    | '+' build { Qualifier [] $2 }
+    | '-' pre '+' build { Qualifier $2 $4 }
 
 pre :: { Pre }
     : parts { $1 }

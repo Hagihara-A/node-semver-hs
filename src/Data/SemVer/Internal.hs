@@ -32,10 +32,13 @@ data Compare
   deriving (Show, Eq)
 
 data Partial
-  = Partial1 Xr
-  | Partial2 Xr Xr
-  | Partial3 Xr Xr Xr
-  | Partial4 Xr Xr Xr Qualifier
+  = Partial0
+  | Partial0Q Qualifier -- x.x.x-pre
+  | Partial1 Nr -- 1.x
+  | Partial1Q Nr Qualifier -- 1.x.x-pre
+  | Partial2 Nr Nr -- 1.2.x
+  | Partial2Q Nr Nr Qualifier -- 1.2.x-pre
+  | Partial3 Nr Nr Nr Qualifier -- 1.2.3-pre
   deriving (Show, Eq)
 
 data Xr
@@ -43,8 +46,7 @@ data Xr
   | XrAny
   deriving (Show, Eq)
 
-data Nr = NrZero | NrDigits Digits
-  deriving (Show, Eq)
+type Nr = Digits
 
 data Tilde = Tilde Partial
   deriving (Show, Eq)
@@ -52,14 +54,13 @@ data Tilde = Tilde Partial
 data Caret = Caret Partial
   deriving (Show, Eq)
 
-data Qualifier = Qualifier (Maybe Pre) (Maybe Build)
+data Qualifier = Qualifier Pre Build
   deriving (Show, Eq)
 
 type Pre = Parts
 
 type Build = Parts
 
--- TODO: Make this non-empty
 type Parts = [Part]
 
 data Part = PartNr Nr | PartId IdentifierCharacters

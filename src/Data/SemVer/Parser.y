@@ -1,96 +1,114 @@
 {
-module Data.SemVer.Parser(parse) where
+module Data.SemVer.Parser(fromString) where
 import Data.SemVer(version)
 import Data.SemVer.Internal
+import Data.SemVer.Lexer(alexScanTokens)
 }
 
-%name analyze valid_semver
+%name parse range_set
 %error { parseError }
-
+%tokentype { Token }
 %token
-    letter { TokenIdentifier $$ }
-    positive_digit { TokenPositiveDigit $$ }
+    identifier_characters { TokenIdentifier $$ }
+    digits { TokenDigits $$ }
     '0' { TokenZero }
     '.' { TokenDot }
     '+' { TokenPlus }
     '-' { TokenHyphen }
-
+    ' - ' { TokenHyphenSep }
+    '~' { TokenTilde }
+    '^' { TokenCaret }
+    '*' { TokenStar }
+    '<' { TokenLt }
+    '>' { TokenGt }
+    '>=' { TokenGte}
+    '<=' { TokenLte }
+    '=' { TokenEq }
+    '||' { TokenOr }
+    spaces { TokenSpaces }
+    x { TokenX }
+    X { TokenX }
 
 %%
 
-valid_semver :: { ValidSemVer }
-    : version_core { ValidSemVer $1 [] [] }
-    | version_core '-' pre_release { ValidSemVer $1 $3 []}
-    | version_core '+' build { ValidSemVer $1 [] $3 }
-    | version_core '-' pre_release '+' build { ValidSemVer $1 $3 $5} 
+range_set :: { RangeSet }
+    : range { [$1] }
+    | range_set logical_or range { $3:$1 }
 
-version_core :: { VersionCore }
-     : major '.' minor '.' patch {VersionCore $1 $3 $5}
+logical_or :: { () }
+    : spaces '||' spaces { () }
+    | spaces '||' { () }
+    | '||' spaces { () } 
+    | '||' { () }
 
-major : numeric_identifier {$1}
+range :: { Range }
+    : hyphen { RangeHyphen $1 }
+    | simples { RangeSimples $1 }
 
-minor : numeric_identifier {$1}
+simples :: { Simples }
+    : simple { [$1] }
+    | simples spaces simple { $3:$1 }
 
-patch : numeric_identifier {$1}
+hyphen :: { Hyphen }
+    : partial ' - ' partial { Hyphen $1 $3}
 
-pre_release :: { PreRelease }
-    : dot_separated_pre_release_identifiers {$1}
+simple :: { Simple }
+    : primitive { SimplePrimitive $1 }
+    | partial { SimplePartial $1 }
+    | tilde { SimpleTilde $1 }
+    | caret { SimpleCaret $1 }
 
-dot_separated_pre_release_identifiers :: { DotSeparatedPreReleaseIdentifiers }
-    : pre_release_identifier {[$1]}
-    | pre_release_identifier '.' dot_separated_pre_release_identifiers {$1:$3}
+primitive :: { Primitive }
+    : compare partial { Primitive $1 $2}
 
-build : dot_separated_build_identifiers {$1}
+compare :: { Compare }
+    : '<' { CompLt }
+    | '>' { CompGt }
+    | '>=' { CompGte }
+    | '<=' { CompLte }
+    | '=' { CompEq }
 
-dot_separated_build_identifiers :: { DotSepBuildIdentifiers }
-    : build_identifier {[$1]}
-    | build_identifier '.' dot_separated_build_identifiers { $1:$3 }
+partial :: { Partial }
+    : xr { Partial1 $1 }
+    | xr '.' xr { Partial2 $1 $3}
+    | xr '.' xr '.' xr { Partial3 $1 $3 $5}
+    | xr '.' xr '.' xr qualifier { Partial4 $1 $3 $5 $6}
 
-pre_release_identifier :: { PreReleaseIdentifier }
-    : alphanumeric_identifier { PreReleaseIdAlphaNum $1 }
-    | numeric_identifier { PreReleaseIdNum $1}
+xr :: { Xr }
+    : X { XrAny }
+    | x { XrAny }
+    | '*' { XrAny }
+    | nr { XrNr $1 }
 
-build_identifier :: { BuildIdentifier }
-    : alphanumeric_identifier {BuildIdAlphaNum $1}
-    | digits {BuildIdDigits $1}
+nr :: { Nr }
+    : '0' { NrZero }
+    | digits { NrDigits $1 }
 
-alphanumeric_identifier 
-    : non_digit {AlphaNumId1 $1 []}
-    | non_digit identifier_characters {AlphaNumId1 $1 $2}
-    | identifier_characters non_digit { AlphaNumId2 $1 $2 []}
-    | identifier_characters non_digit identifier_characters { AlphaNumId2 $1 $2 $3}
+tilde :: { Tilde }
+    : '~' partial { Tilde $2 }
+caret :: { Caret }
+    : '^' partial { Caret $2 }
 
-version_identifier
-    : x { VerIdAny }
-    | X { VerIdAny }
-    | '*' { VerIdAny }
-    | numeric_identifier { VerIdNum $1 }
+qualifier :: { Qualifier }
+    : {- empty -} { Qualifier Nothing Nothing }
+    | '-' pre { Qualifier (Just $2) Nothing }
+    | '+' build { Qualifier (Nothing) (Just $2) }
+    | '-' pre '+' build { Qualifier (Just $2) (Just $4) }
 
-numeric_identifier
-    : '0' { NumIdZero }
-    | positive_digit { NumId $1 [] }
-    | positive_digit digits { NumId $1 $2}
+pre :: { Pre }
+    : parts { $1 }
 
-identifier_characters
-    : identifier_character { [$1] }
-    | identifier_character identifier_characters { $1:$2 }
+build :: { Build }
+    : parts { $1 }
 
-identifier_character 
-    : digit { IdCharDigit $1 }
-    | non_digit { IdCharNonDigit $1}
+parts :: { Parts }
+    : parts '.' part { $3:$1 }
+    | part { [$1] }
 
-non_digit :: { NonDigit }
-    : letter { NonDigitLetter $1 }
-    | '-' { NonDigitHyphen }
-
-digits :: { Digits }
-    : digit {[$1]}
-    | digit digits {$1:$2}
-
-digit :: { Digit }
-    : '0' { DigitZero }
-    | positive_digit { DigitPositive $1 }
+part :: { Part }
+    : nr { PartNr $1 }
+    | identifier_characters { PartId $1 }
 
 {
-parse = makeParse analyze
+fromString = parse . alexScanTokens
 }

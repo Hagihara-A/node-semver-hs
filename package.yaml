@@ -35,13 +35,19 @@ ghc-options:
   - -Wpartial-fields
   - -Wredundant-constraints
 
+default-extensions:
+  - ImportQualifiedPost
+
 library:
   source-dirs: src
   # dependencies:
   build-tools:
-    - happy
+    - happy >= 1.20
+    - alex >= 3.3
   exposed-modules:
     - Data.SemVer.Parser
+    - Data.SemVer.Lexer
+
   other-modules:
     - Data.SemVer.Internal
 

@@ -1,17 +1,16 @@
+module Main where
+
 import Data.SemVer (version)
-import Data.SemVer.Parser (parse)
+import Data.SemVer.Node (satisfies)
+import RangeExclude (rangeExcludeTest)
+import RangeInclude (rangeIncludeTest)
+import RangeParse (rangeParseTest)
 import Test.HUnit
-import Data.ByteString qualified as B
 
 testRoot :: Test
-testRoot = TestList [testParseSemVer]
-
-testParseSemVer :: Test
-testParseSemVer =
-  TestLabel "Test parsing simple semver" $
-    TestList
-      [ parse "1.2.3" ~=? version 1 2 3 [] [],
-        parse "1 . 2 .   3" ~=? version 1 2 3 [] [] ]
+testRoot =
+  TestList
+    [rangeExcludeTest, rangeIncludeTest, rangeParseTest]
 
 main :: IO ()
 main = runTestTTAndExit testRoot

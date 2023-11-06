@@ -1,10 +1,7 @@
-name: npm-instsall-hs
+name: node-semver-hs
 version: 0.1.0.0
-github: "githubuser/npm-instsall-hs"
 license: BSD-3-Clause
-author: "Author name here"
-maintainer: "example@example.com"
-copyright: "2023 Author name here"
+author: "arark"
 
 extra-source-files:
   - README.md
@@ -17,12 +14,12 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description: Please see the README on GitHub at <https://github.com/githubuser/npm-instsall-hs#readme>
+# description: Please see the README on GitHub at <https://github.com/githubuser/npm-instsall-hs#readme>
 
 dependencies:
   - base >= 4.7 && < 5
   - semver
-  - array
+  # - array
 
 ghc-options:
   - -Wall
@@ -37,33 +34,36 @@ ghc-options:
 
 default-extensions:
   - ImportQualifiedPost
+  - OverloadedStrings
 
 library:
   source-dirs: src
-  # dependencies:
+  dependencies:
+    - semver
+    - text
+    - array >= 0.5
   build-tools:
     - happy >= 1.20
     - alex >= 3.3
   exposed-modules:
-    - Data.SemVer.Parser
-    - Data.SemVer.Lexer
-
+    - Data.SemVer.Node.Parser
+    - Data.SemVer.Node.Lexer
+    - Data.SemVer.Node
   other-modules:
-    - Data.SemVer.Internal
+    - Data.SemVer.Node.Internal
 
-executables:
-  npm-instsall-hs-exe:
-    main: Main.hs
-    source-dirs: app
-    ghc-options:
-      - -threaded
-      - -rtsopts
-      - -with-rtsopts=-N
-    dependencies:
-      - npm-instsall-hs
+executable:
+  main: Main.hs
+  source-dirs: app
+  ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+  dependencies:
+    - node-semver-hs
 
 tests:
-  npm-instsall-hs-test:
+  test:
     main: Spec.hs
     source-dirs: test
     ghc-options:
@@ -71,5 +71,7 @@ tests:
       - -rtsopts
       - -with-rtsopts=-N
     dependencies:
-      - npm-instsall-hs
+      - node-semver-hs
       - HUnit
+      - semver
+      - text

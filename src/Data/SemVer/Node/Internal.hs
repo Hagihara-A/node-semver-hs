@@ -8,6 +8,7 @@ type RangeSet = [Range]
 data Range
   = RangeHyphen Hyphen
   | RangeSimples Simples
+  | RangeVoid
   deriving (Show, Eq)
 
 type Simples = [Simple]
@@ -35,18 +36,24 @@ data Compare
   deriving (Show, Eq)
 
 data Partial
-  | Partial3 Nr Nr Nr Qualifier -- 1.2.3-pre
+  = Partial1 Xr -- 1
+  | Partial2 Xr Xr -- 1.2
+  | Partial3 Xr Xr Xr Qualifier -- 1.2.3-pre
   deriving (Show, Eq)
 
 data Xr
   = XrNr Nr
-  | XrAny
+  | XrX
+  | Xr_x
+  | XrStar
   deriving (Show, Eq)
 
 type Nr = Digits
 
+newtype Tilde = Tilde Partial
   deriving (Show, Eq)
 
+newtype Caret = Caret Partial
   deriving (Show, Eq)
 
 data Qualifier = Qualifier Pre Build
@@ -66,6 +73,7 @@ type IdentifierCharacters = String
 type Digits = Int
 
 parseError :: [Token] -> a
+parseError tk = error ("Parse Error" ++ show tk)
 
 data Token
   = TokenIdentifier IdentifierCharacters
@@ -82,7 +90,8 @@ data Token
   | TokenGte
   | TokenLte
   | TokenEq
-  | TokenSpaces
   | TokenOr
   | TokenX
+  | Token_x
+  | TokenSpaces
   deriving (Show, Eq)

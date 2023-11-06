@@ -6,7 +6,9 @@ import Data.SemVer.Node.Internal
 %wrapper "basic"
 
 tokens :-
+    $white+ { const TokenSpaces }
     [\-\+]^[\-a-zA-Z0-9]+ { TokenIdentifier }
+    "0" { const $ TokenDigits 0 }
     [1-9][0-9]* { TokenDigits . read }
     "." { const TokenDot }
     "-" { const TokenHyphen }
@@ -21,5 +23,9 @@ tokens :-
     "<=" { const TokenLte }
     "=" { const TokenEq }
     "||" { const TokenOr }
-    x | X { const TokenX }
+    X { const TokenX }
+    x { const Token_x }
 
+{
+lexer = alexScanTokens
+}

@@ -4,6 +4,7 @@ import Data.SemVer.Node.Internal
 import Data.SemVer.Node.Lexer(lexer)
 }
 
+%name analyze range_set
 %error { parseError }
 %tokentype { Token }
 %token
@@ -13,6 +14,7 @@ import Data.SemVer.Node.Lexer(lexer)
     '+' { TokenPlus }
     '-' { TokenHyphen }
     ' - ' { TokenHyphenSep }
+    spaces { TokenSpaces }
     '~' { TokenTilde }
     '^' { TokenCaret }
     '*' { TokenStar }
@@ -22,17 +24,25 @@ import Data.SemVer.Node.Lexer(lexer)
     '<=' { TokenLte }
     '=' { TokenEq }
     '||' { TokenOr }
-    x { TokenX }
+    x { Token_x }
     X { TokenX }
 
 %%
 
 range_set :: { RangeSet }
     : range { [$1] }
+    | range_set logical_or range { $3:$1 }
+
+logical_or
+    : spaces '||' { () }
+    | spaces '||' spaces { () }
+    | '||' spaces { () }
+    | '||' { () }
 
 range :: { Range }
     : hyphen { RangeHyphen $1 }
     | simples { RangeSimples $1 }
+    | {- empty -} { RangeVoid }
 
 simples :: { Simples }
     : simple { [$1] }
@@ -58,28 +68,22 @@ compare :: { Compare }
     | '=' { CompEq }
 
 partial :: { Partial }
-    : {- empty -} { Partial0 }
-    | any { Partial0 } -- x
+    : xr { Partial1 $1 }
+    | xr '.' xr { Partial2 $1 $3 }
+    | xr '.' xr '.' xr qualifier { Partial3 $1 $3 $5 $6 }
 
-    | nr { Partial1 $1 } -- 1
-    | nr '.' any { Partial1 $1 } -- 1.x
-    | nr '.' any '.' any { Partial1 $1 } -- 1.x.x
-    | nr '.' any '.' any qualifier { Partial1Q $1 $6 } -- 1.x.x-pre
-
-    | nr '.' nr '.' any  { Partial2 $1 $3 } -- 1.2.x
-    | nr '.' nr '.' any qualifier  { Partial2Q $1 $3 $6 } -- 1.2.x-pre
-
-    | nr '.' nr '.' nr  qualifier { Partial3 $1 $3 $5 $6 } -- 1.2.3-pre
-
-any
-    : x { () }
-    | X { () }
-    | '*' { () }
+xr :: { Xr }
+    : x { Xr_x }
+    | X { XrX }
+    | '*' { XrStar }
+    | nr { XrNr $1 }
 
 nr :: { Nr }
+    : digits { $1 }
 
 tilde :: { Tilde }
     : '~' partial { Tilde $2 }
+
 caret :: { Caret }
     : '^' partial { Caret $2 }
 
@@ -104,4 +108,5 @@ part :: { Part }
     | identifier_characters { PartId $1 }
 
 {
+parser = analyze . lexer
 }

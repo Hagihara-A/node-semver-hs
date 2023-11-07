@@ -29,7 +29,7 @@ fixtures =
     --   ("1.2.3pre+asdf - 2.4.3-pre+asdf", "1.2.3", true),
     --   ("1.2.3-pre+asdf - 2.4.3pre+asdf", "1.2.3", true),
     --   ("1.2.3pre+asdf - 2.4.3pre+asdf", "1.2.3", true),
-    -- ("1.2.3-pre+asdf - 2.4.3-pre+asdf", "1.2.3-pre.2"), TODO: fix Data.SemVer
+    ("1.2.3-pre+asdf - 2.4.3-pre+asdf", "1.2.3-pre.2"), 
     ("1.2.3-pre+asdf - 2.4.3-pre+asdf", "2.4.3-alpha"),
     ("1.2.3+asdf - 2.4.3+asdf", "1.2.3"),
     ("1.0.0", "1.0.0"),

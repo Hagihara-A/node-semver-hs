@@ -22,7 +22,7 @@ tokens :-
     ">=" { const TokenGte }
     "<=" { const TokenLte }
     "=" { const TokenEq }
-    "||" { const TokenOr }
+    $white* "||" $white* { const TokenOr }
     X { const TokenX }
     x { const Token_x }
 

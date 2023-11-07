@@ -3,7 +3,7 @@ module Data.SemVer.Node.Parser(parser) where
 import Data.SemVer.Node.Internal
 import Data.SemVer.Node.Lexer(lexer)
 }
-
+%expect 0
 %name analyze range_set
 %error { parseError }
 %tokentype { Token }
@@ -34,10 +34,7 @@ range_set :: { RangeSet }
     | range_set logical_or range { $3:$1 }
 
 logical_or
-    : spaces '||' { () }
-    | spaces '||' spaces { () }
-    | '||' spaces { () }
-    | '||' { () }
+    : '||' { () }
 
 range :: { Range }
     : hyphen { RangeHyphen $1 }
@@ -62,10 +59,15 @@ primitive :: { Primitive }
 
 compare :: { Compare }
     : '<' { CompLt }
+    | '<' spaces { CompLt }
     | '>' { CompGt }
+    | '>' spaces { CompGt }
     | '>=' { CompGte }
+    | '>=' spaces { CompGte }
     | '<=' { CompLte }
+    | '<=' spaces { CompLte }
     | '=' { CompEq }
+    | '=' spaces { CompEq }
 
 partial :: { Partial }
     : x { Partial0 }
@@ -93,6 +95,7 @@ nr :: { Nr }
 
 tilde :: { Tilde }
     : '~' partial { Tilde $2 }
+    | '~' spaces partial { Tilde $3 }
 
 caret :: { Caret }
     : '^' partial { Caret $2 }

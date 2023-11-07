@@ -1,8 +1,6 @@
 -- | This is a almost node-semver compliant parsing and comparing module.
 module Data.SemVer.Node
-  ( satisfies,
-    -- validRange,
-    parseRange,
+  ( parseRange,
   )
 where
 
@@ -10,23 +8,25 @@ import Data.Maybe (fromJust)
 import Data.SemVer
   ( Identifier,
     Version,
+    initial,
     numeric,
     textual,
     version,
   )
 import Data.SemVer.Constraint
-  ( Constraint (CAnd, CAny, CEq, CGtEq, CLt, CLtEq, COr),
+  ( Constraint (..),
   )
 import Data.SemVer.Node.Internal
 import Data.SemVer.Node.Parser (parser)
 import Data.Text (pack)
 
-parseRange = parser
+parseRange :: String -> Constraint
+parseRange = rangeSetToConstraint . parser
 
 rangeSetToConstraint :: RangeSet -> Constraint
 rangeSetToConstraint [] = CAny
-rangeSetToConstraint (head : rest) =
-  foldr (COr . toConstraint) (toConstraint head) rest
+rangeSetToConstraint (r1 : rr) =
+  foldr (COr . toConstraint) (toConstraint r1) rr
 
 class ToConstraint a where
   toConstraint :: a -> Constraint
@@ -37,7 +37,14 @@ instance ToConstraint Range where
   toConstraint RangeVoid = CAny
 
 instance ToConstraint Hyphen where
-  toConstraint (Hyphen p1 p2) = CAnd (CGtEq $ infPartial p1) (CLt $ supPartial p2)
+  toConstraint
+    (Hyphen p1 p2) =
+      case upper of
+        Just v -> CAnd (CGtEq lower) (CLt v)
+        Nothing -> CGtEq lower
+      where
+        lower = infPartial p1
+        upper = supPartial p2
 
 instance ToConstraint Simple where
   toConstraint (SimplePrimitive primitive) = toConstraint primitive
@@ -47,134 +54,91 @@ instance ToConstraint Simple where
 
 instance ToConstraint Primitive where
   toConstraint (Primitive CompLt p) = CLt (infPartial p)
-  toConstraint (Primitive CompGt p) = CGtEq (supPartial p)
+  toConstraint (Primitive CompGt p) = maybe (CLt $ version 0 0 0 pre0 []) CGtEq (supPartial p)
   toConstraint (Primitive CompGte p) = CGtEq (infPartial p)
-  toConstraint (Primitive CompLte p) = CLt (supPartial p)
+  toConstraint (Primitive CompLte p) = maybe CAny CLt (supPartial p)
   toConstraint (Primitive CompEq p) = toConstraint p
 
 instance ToConstraint Partial where
   toConstraint
     ( Partial3
-        (XrNr nr1)
-        (XrNr nr2)
-        (XrNr nr3)
+        nr1
+        nr2
+        nr3
         (Qualifier pre build)
       ) = CEq (version nr1 nr2 nr3 (partsToId pre) (partsToId build))
-  toConstraint p = CAnd (CGtEq $ infPartial p) (CLt $ supPartial p)
+  toConstraint (Partial2 nr1 nr2) = CAnd (CGtEq lower) (CLt upper)
+    where
+      lower = version nr1 nr2 0 [] []
+      upper = version nr1 (nr2 + 1) 0 [] []
+  toConstraint (Partial1 nr1) = CAnd (CGtEq lower) (CLt upper)
+    where
+      lower = version nr1 0 0 [] []
+      upper = version (nr1 + 1) 0 0 pre0 []
+  toConstraint Partial0 = CAny
 
 instance ToConstraint Tilde where
   toConstraint
-    ( Tilde
-        ( Partial3
-            (XrNr nr1)
-            (XrNr nr2)
-            (XrNr nr3)
-            (Qualifier pre _)
-          )
-      ) = CAnd (CGtEq $ version nr1 nr2 nr3 (partsToId pre) []) (CLt $ version nr1 (nr2 + 1) 0 [numeric 0] [])
+    (Tilde (Partial3 nr1 nr2 nr3 (Qualifier pre _))) =
+      CAnd (CGtEq lower) (CLt upper)
+      where
+        lower = version nr1 nr2 nr3 (partsToId pre) []
+        upper = version nr1 (nr2 + 1) 0 pre0 []
   toConstraint (Tilde p) = toConstraint p
 
 instance ToConstraint Caret where
   toConstraint
-    ( Caret
-        ( Partial3
-            (XrNr 0)
-            (XrNr 0)
-            (XrNr nr3)
-            (Qualifier pre _)
-          )
-      ) = CAnd (CGtEq $ version 0 0 nr3 (partsToId pre) []) (CLt $ version 0 0 (nr3 + 1) [numeric 0] [])
+    (Caret (Partial3 0 0 nr3 (Qualifier pre _))) =
+      CAnd (CGtEq lower) (CLt upper)
+      where
+        lower = version 0 0 nr3 (partsToId pre) []
+        upper = version 0 0 (nr3 + 1) pre0 []
   toConstraint
-    ( Caret
-        ( Partial3
-            (XrNr 0)
-            (XrNr nr2)
-            (XrNr nr3)
-            (Qualifier pre _)
-          )
-      ) = CAnd (CGtEq $ version 0 nr2 nr3 (partsToId pre) []) (CLt $ version 0 (nr2 + 1) 0 [numeric 0] [])
+    (Caret (Partial3 0 nr2 nr3 (Qualifier pre _))) =
+      CAnd (CGtEq lower) (CLt upper)
+      where
+        lower = version 0 nr2 nr3 (partsToId pre) []
+        upper = version 0 (nr2 + 1) 0 pre0 []
   toConstraint
-    ( Caret
-        ( Partial3
-            (XrNr nr1)
-            (XrNr nr2)
-            (XrNr nr3)
-            (Qualifier pre _)
-          )
-      ) = CAnd (CGtEq $ version nr1 nr2 nr3 (partsToId pre) []) (CLt $ version (nr1 + 1) 0 0 [numeric 0] [])
+    (Caret (Partial3 nr1 nr2 nr3 (Qualifier pre _))) =
+      CAnd (CGtEq lower) (CLt upper)
+      where
+        lower = version nr1 nr2 nr3 (partsToId pre) []
+        upper = version (nr1 + 1) 0 0 pre0 []
   toConstraint
-    ( Caret
-        ( Partial3
-            (XrNr 0)
-            (XrNr nr2)
-            _
-            _
-          )
-      ) = CAnd (CGtEq $ version 0 nr2 0 [] []) (CLtEq $ version 0 (nr2 + 1) 0 [numeric 0] [])
+    (Caret (Partial2 0 nr2)) =
+      CAnd (CGtEq lower) (CLtEq upper)
+      where
+        lower = version 0 nr2 0 [] []
+        upper = version 0 (nr2 + 1) 0 pre0 []
   toConstraint
-    ( Caret
-        ( Partial3
-            (XrNr nr1)
-            (XrNr nr2)
-            _
-            _
-          )
-      ) = CAnd (CGtEq $ version nr1 nr2 0 [] []) (CLtEq $ version (nr1 + 1) 0 0 [numeric 0] [])
+    (Caret (Partial2 nr1 nr2)) =
+      CAnd (CGtEq lower) (CLtEq upper)
+      where
+        lower = version nr1 nr2 0 [] []
+        upper = version (nr1 + 1) 0 0 pre0 []
   toConstraint
-    ( Caret
-        ( Partial2
-            (XrNr 0)
-            (XrNr nr2)
-          )
-      ) = CAnd (CGtEq $ version 0 nr2 0 [] []) (CLtEq $ version 0 (nr2 + 1) 0 [numeric 0] [])
-  toConstraint
-    ( Caret
-        ( Partial2
-            (XrNr nr1)
-            (XrNr nr2)
-          )
-      ) = CAnd (CGtEq $ version nr1 nr2 0 [] []) (CLtEq $ version (nr1 + 1) 0 0 [numeric 0] [])
-  toConstraint
-    ( Caret
-        ( Partial3
-            (XrNr 0)
-            _
-            _
-            _
-          )
-      ) = CLt $ version 1 0 0 [numeric 0] []
-  toConstraint
-    ( Caret
-        ( Partial3
-            (XrNr nr1)
-            _
-            _
-            _
-          )
-      ) = CAnd (CGtEq $ version nr1 0 0 [] []) (CLt $ version (nr1 + 1) 0 0 [numeric 0] [])
-  toConstraint
-    ( Caret
-        ( Partial2
-            (XrNr nr1)
-            _
-          )
-      ) = CAnd (CGtEq $ version nr1 0 0 [] []) (CLt $ version (nr1 + 1) 0 0 [numeric 0] [])
-  toConstraint
-    ( Caret
-        ( Partial1
-            (XrNr nr1)
-          )
-      ) = CAnd (CGtEq $ version nr1 0 0 [] []) (CLt $ version (nr1 + 1) 0 0 [numeric 0] [])
-  toConstraint (Caret (Partial3 {})) = CAny
-  toConstraint (Caret Partial2 {}) = CAny
-  toConstraint (Caret Partial1 {}) = CAny
+    (Caret (Partial1 nr1)) =
+      CAnd (CGtEq lower) (CLtEq upper)
+      where
+        lower = version nr1 0 0 [] []
+        upper = version (nr1 + 1) 0 0 pre0 []
+  toConstraint (Caret Partial0) = CAny
 
-supPartial :: Partial -> Version
-supPartial (Partial1 (XrNr nr1)) = version (nr1 + 1) 0 0 [numeric 0] []
-supPartial (Partial1 (XrNr nr1)) = version (nr1 + 1) 0 0 [numeric 0] []
+supPartial :: Partial -> Maybe Version
+supPartial Partial0 = Nothing
+supPartial (Partial1 nr1) = Just $ version (nr1 + 1) 0 0 pre0 []
+supPartial (Partial2 nr1 nr2) = Just $ version nr1 (nr2 + 1) 0 pre0 []
+supPartial (Partial3 nr1 nr2 nr3 (Qualifier p _)) = Just $ version nr1 nr2 nr3 (partsToId p) []
 
 infPartial :: Partial -> Version
-infPartial = undefined
+infPartial Partial0 = initial
+infPartial (Partial1 nr1) = version nr1 0 0 [] []
+infPartial (Partial2 nr1 nr2) = version nr1 nr2 0 [] []
+infPartial (Partial3 nr1 nr2 nr3 _) = version nr1 nr2 nr3 [] []
+
+pre0 :: [Identifier]
+pre0 = [numeric 0]
 
 partsToId :: Parts -> [Identifier]
 partsToId = map partToIdentifier
@@ -182,53 +146,3 @@ partsToId = map partToIdentifier
 partToIdentifier :: Part -> Identifier
 partToIdentifier (PartNr nr) = numeric nr
 partToIdentifier (PartId str) = (fromJust . textual . pack) str
-
--- validRange :: RangeSet -> RangeSet
--- validRange = map normalizeRange
-
--- normalizeHyphen :: Hyphen -> Range
--- normalizeHyphen = undefined
-
--- normalizePrimitive :: Primitive -> Primitive
--- normalizePrimitive = undefined
-
--- normalizeRange :: Range -> Range
--- normalizeRange (RangeHyphen hyphen) = undefined
--- normalizeRange (RangeSimples simples) = undefined
--- normalizeRange RangeVoid = RangeSimples [SimplePartial (Partial1 XrStar)]
-
--- normalizeSimple :: Simple -> Range
--- normalizeSimple (SimplePrimitive primitive) = undefined
--- normalizeSimple (SimplePartial partial) = undefined
--- normalizeSimple (SimpleTilde (Tilde partial)) = undefined
--- normalizeSimple (SimpleCaret (Caret partial)) = undefined
-
--- normalizeTildePartial :: Partial -> Range
--- normalizeTildePartial (Partial1 (XrNr nr1)) =
---   RangeSimples
---     [ SimplePrimitive (Primitive CompGte undefined),
---       SimplePrimitive (Primitive CompLt undefined)
---     ]
--- normalizeTildePartial (Partial1 _) =
---   RangeSimples
---     [ SimplePartial (Partial1 XrStar)
---     ]
--- normalizeTildePartial (Partial2 (XrNr nr1) (XrNr nr2)) = undefined
--- normalizeTildePartial (Partial2 (XrNr nr1) _) =
---   RangeSimples
---     [ SimplePrimitive (Primitive CompGte undefined),
---       SimplePrimitive (Primitive CompLt undefined)
---     ]
--- normalizeTildePartial (Partial2 _ _) =
---   RangeSimples
---     [ SimplePartial (Partial1 XrStar)
---     ]
--- normalizeTildePartial (Partial3) = undefined
--- normalizeTildePartial _ = undefined
-
-satisfies :: Version -> RangeSet -> Bool
-satisfies = undefined
-
--- normalizePartial :: Partial -> Range
--- normalizePartial (Partial1 (XrNr nr)) = undefined
--- normalizePartial (Partial1 _) = RangeVoid

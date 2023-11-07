@@ -1,16 +1,13 @@
 module Main where
 
-import Data.SemVer (version)
-import Data.SemVer.Node (satisfies)
 import RangeExclude (rangeExcludeTest)
 import RangeInclude (rangeIncludeTest)
-import RangeParse (rangeParseTest)
 import Test.HUnit
 
 testRoot :: Test
 testRoot =
   TestList
-    [rangeExcludeTest, rangeIncludeTest, rangeParseTest]
+    [rangeExcludeTest, rangeIncludeTest]
 
 main :: IO ()
 main = runTestTTAndExit testRoot

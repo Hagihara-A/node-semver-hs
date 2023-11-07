@@ -24,7 +24,7 @@ import Data.SemVer.Node.Lexer(lexer)
     '<=' { TokenLte }
     '=' { TokenEq }
     '||' { TokenOr }
-    x { Token_x }
+    '_x' { Token_x }
     X { TokenX }
 
 %%
@@ -68,15 +68,25 @@ compare :: { Compare }
     | '=' { CompEq }
 
 partial :: { Partial }
-    : xr { Partial1 $1 }
-    | xr '.' xr { Partial2 $1 $3 }
-    | xr '.' xr '.' xr qualifier { Partial3 $1 $3 $5 $6 }
+    : x { Partial0 }
+    | x '.' xr { Partial0 } 
+    | x '.' xr '.' xr { Partial0 } 
+    | nr { Partial1 $1 }
+    | nr '.' x { Partial1 $1 }
+    | nr '.' x '.' xr { Partial1 $1 }
+    | nr '.' nr  { Partial2 $1 $3 }
+    | nr '.' nr '.' x  { Partial2 $1 $3 }
+    | nr '.' nr '.' nr qualifier { Partial3 $1 $3 $5 $6 }
 
-xr :: { Xr }
-    : x { Xr_x }
-    | X { XrX }
-    | '*' { XrStar }
-    | nr { XrNr $1 }
+xr
+    : x { () } 
+    | nr { () }
+x
+    : '_x' { () }
+    | X { () }
+    | '*' { () }
+
+
 
 nr :: { Nr }
     : digits { $1 }

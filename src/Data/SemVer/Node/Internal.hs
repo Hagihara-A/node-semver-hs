@@ -36,16 +36,10 @@ data Compare
   deriving (Show, Eq)
 
 data Partial
-  = Partial1 Xr -- 1
-  | Partial2 Xr Xr -- 1.2
-  | Partial3 Xr Xr Xr Qualifier -- 1.2.3-pre
-  deriving (Show, Eq)
-
-data Xr
-  = XrNr Nr
-  | XrX
-  | Xr_x
-  | XrStar
+  = Partial0
+  | Partial1 Nr -- 1
+  | Partial2 Nr Nr -- 1.2
+  | Partial3 Nr Nr Nr Qualifier -- 1.2.3-pre
   deriving (Show, Eq)
 
 type Nr = Digits

@@ -8,7 +8,6 @@ import Data.Maybe (fromJust)
 import Data.SemVer
   ( Identifier,
     Version,
-    initial,
     numeric,
     textual,
     version,
@@ -40,10 +39,11 @@ instance ToConstraint Hyphen where
   toConstraint
     (Hyphen p1 p2) =
       case upper of
-        Just v -> CAnd (CGtEq lower) (CLt v)
-        Nothing -> CGtEq lower
+        Left (P3 v) -> CAnd (CGtEq lower) (CLtEq v)
+        Left P0 -> CGtEq lower
+        Right v -> CAnd (CGtEq lower) (CLt v)
       where
-        lower = infPartial p1
+        lower = minPartial p1
         upper = supPartial p2
 
 instance ToConstraint Simple where
@@ -53,10 +53,16 @@ instance ToConstraint Simple where
   toConstraint (SimpleCaret caret) = toConstraint caret
 
 instance ToConstraint Primitive where
-  toConstraint (Primitive CompLt p) = CLt (infPartial p)
-  toConstraint (Primitive CompGt p) = maybe (CLt $ version 0 0 0 pre0 []) CGtEq (supPartial p)
-  toConstraint (Primitive CompGte p) = CGtEq (infPartial p)
-  toConstraint (Primitive CompLte p) = maybe CAny CLt (supPartial p)
+  toConstraint (Primitive CompLt p) = CLt (minPartial p)
+  toConstraint (Primitive CompGt p) = case supPartial p of
+    Left (P3 v) -> CGt v
+    Left P0 -> CLt $ version 0 0 0 pre0 []
+    Right v -> CLtEq v
+  toConstraint (Primitive CompGte p) = CGtEq (minPartial p)
+  toConstraint (Primitive CompLte p) = case supPartial p of
+    Left (P3 v) -> CLtEq v
+    Left P0 -> CAny
+    Right v -> CLt v
   toConstraint (Primitive CompEq p) = toConstraint p
 
 instance ToConstraint Partial where
@@ -125,17 +131,21 @@ instance ToConstraint Caret where
         upper = version (nr1 + 1) 0 0 pre0 []
   toConstraint (Caret Partial0) = CAny
 
-supPartial :: Partial -> Maybe Version
-supPartial Partial0 = Nothing
-supPartial (Partial1 nr1) = Just $ version (nr1 + 1) 0 0 pre0 []
-supPartial (Partial2 nr1 nr2) = Just $ version nr1 (nr2 + 1) 0 pre0 []
-supPartial (Partial3 nr1 nr2 nr3 (Qualifier p _)) = Just $ version nr1 nr2 nr3 (partsToId p) []
+-- | supremum of given partial
+supPartial :: Partial -> Either NoSupType Version
+supPartial Partial0 = Left P0
+supPartial (Partial1 nr1) = Right $ version (nr1 + 1) 0 0 pre0 []
+supPartial (Partial2 nr1 nr2) = Right $ version nr1 (nr2 + 1) 0 pre0 []
+supPartial (Partial3 nr1 nr2 nr3 (Qualifier pre _)) =
+  Left $ P3 $ version nr1 nr2 nr3 (partsToId pre) []
 
-infPartial :: Partial -> Version
-infPartial Partial0 = initial
-infPartial (Partial1 nr1) = version nr1 0 0 [] []
-infPartial (Partial2 nr1 nr2) = version nr1 nr2 0 [] []
-infPartial (Partial3 nr1 nr2 nr3 _) = version nr1 nr2 nr3 [] []
+data NoSupType = P0 | P3 Version
+
+minPartial :: Partial -> Version
+minPartial Partial0 = version 0 0 0 pre0 []
+minPartial (Partial1 nr1) = version nr1 0 0 pre0 []
+minPartial (Partial2 nr1 nr2) = version nr1 nr2 0 pre0 []
+minPartial (Partial3 nr1 nr2 nr3 (Qualifier pre _)) = version nr1 nr2 nr3 (partsToId pre) []
 
 pre0 :: [Identifier]
 pre0 = [numeric 0]

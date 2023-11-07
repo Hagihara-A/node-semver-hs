@@ -52,16 +52,6 @@ library:
   other-modules:
     - Data.SemVer.Node.Internal
 
-executable:
-  main: Main.hs
-  source-dirs: app
-  ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-  dependencies:
-    - node-semver-hs
-
 tests:
   test:
     main: Spec.hs

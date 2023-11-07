@@ -39,12 +39,13 @@ instance ToConstraint Hyphen where
   toConstraint
     (Hyphen p1 p2) =
       case upper of
-        Left (P3 v) -> CAnd (CGtEq lower) (CLtEq v)
-        Left P0 -> CGtEq lower
-        Right v -> CAnd (CGtEq lower) (CLt v)
+        Nothing -> CGtEq lower
+        Just v -> case p2 of
+          Partial3 {} -> CAnd (CGtEq lower) (CLtEq v)
+          _ -> CAnd (CGtEq lower) (CLt v)
       where
         lower = minPartial p1
-        upper = supPartial p2
+        upper = leastUpperBound p2
 
 instance ToConstraint Simple where
   toConstraint (SimplePrimitive primitive) = toConstraint primitive
@@ -54,15 +55,19 @@ instance ToConstraint Simple where
 
 instance ToConstraint Primitive where
   toConstraint (Primitive CompLt p) = CLt (minPartial p)
-  toConstraint (Primitive CompGt p) = case supPartial p of
-    Left (P3 v) -> CGt v
-    Left P0 -> CLt $ version 0 0 0 pre0 []
-    Right v -> CLtEq v
+  toConstraint (Primitive CompGt p) = case upperBound p of
+    -- Left (P3 v) -> CGt v
+    Nothing -> CLt $ version 0 0 0 pre0 []
+    Just v -> case p of
+      Partial3 {} -> CGt v
+      _ -> CGtEq v
   toConstraint (Primitive CompGte p) = CGtEq (minPartial p)
-  toConstraint (Primitive CompLte p) = case supPartial p of
-    Left (P3 v) -> CLtEq v
-    Left P0 -> CAny
-    Right v -> CLt v
+  toConstraint (Primitive CompLte p) = case leastUpperBound p of
+    -- Left (P3 v) -> CLtEq v
+    Nothing -> CAny
+    Just v -> case p of
+      Partial3 {} -> CLtEq v
+      _ -> CLt v
   toConstraint (Primitive CompEq p) = toConstraint p
 
 instance ToConstraint Partial where
@@ -131,20 +136,27 @@ instance ToConstraint Caret where
         upper = version (nr1 + 1) 0 0 pre0 []
   toConstraint (Caret Partial0) = CAny
 
--- | supremum of given partial
-supPartial :: Partial -> Either NoSupType Version
-supPartial Partial0 = Left P0
-supPartial (Partial1 nr1) = Right $ version (nr1 + 1) 0 0 pre0 []
-supPartial (Partial2 nr1 nr2) = Right $ version nr1 (nr2 + 1) 0 pre0 []
-supPartial (Partial3 nr1 nr2 nr3 (Qualifier pre _)) =
-  Left $ P3 $ version nr1 nr2 nr3 (partsToId pre) []
+-- | Example: 1.2 -> 1.3.0
+-- Note that this is not least upper bound. Least upper bound is 1.3.0-0.
+upperBound :: Partial -> Maybe Version
+upperBound Partial0 = Nothing
+upperBound (Partial1 nr1) = Just $ version (nr1 + 1) 0 0 [] []
+upperBound (Partial2 nr1 nr2) = Just $ version nr1 (nr2 + 1) 0 [] []
+upperBound (Partial3 nr1 nr2 nr3 (Qualifier pre _)) =
+  Just $ version nr1 nr2 nr3 (partsToId pre) []
 
-data NoSupType = P0 | P3 Version
+-- | Example: 1.2 -> 1.3.0-0
+leastUpperBound :: Partial -> Maybe Version
+leastUpperBound Partial0 = Nothing
+leastUpperBound (Partial1 nr1) = Just $ version (nr1 + 1) 0 0 pre0 []
+leastUpperBound (Partial2 nr1 nr2) = Just $ version nr1 (nr2 + 1) 0 pre0 []
+leastUpperBound (Partial3 nr1 nr2 nr3 (Qualifier pre _)) =
+  Just $ version nr1 nr2 nr3 (partsToId pre) [] -- In this case, given partial contains exactly one element. Thus, least upper bound is same as the element.
 
 minPartial :: Partial -> Version
-minPartial Partial0 = version 0 0 0 pre0 []
-minPartial (Partial1 nr1) = version nr1 0 0 pre0 []
-minPartial (Partial2 nr1 nr2) = version nr1 nr2 0 pre0 []
+minPartial Partial0 = version 0 0 0 [] []
+minPartial (Partial1 nr1) = version nr1 0 0 [] []
+minPartial (Partial2 nr1 nr2) = version nr1 nr2 0 [] []
 minPartial (Partial3 nr1 nr2 nr3 (Qualifier pre _)) = version nr1 nr2 nr3 (partsToId pre) []
 
 pre0 :: [Identifier]

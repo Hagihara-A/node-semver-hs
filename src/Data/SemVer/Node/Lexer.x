@@ -1,31 +1,38 @@
 {
-module Data.SemVer.Node.Lexer(lexer) where
+module Data.SemVer.Node.Lexer where
 import Data.SemVer.Node.Internal
 }
 
-%wrapper "basic"
+%wrapper "monad"
 
 tokens :-
-    $white+ { const TokenSpaces }
-    [\-\+]^[\-a-zA-Z0-9]+ { TokenIdentifier }
-    "0" { const $ TokenDigits 0 }
-    [1-9][0-9]* { TokenDigits . read }
-    "." { const TokenDot }
-    "-" { const TokenHyphen }
-    " - " { const TokenHyphenSep }
-    "+" { const TokenPlus }
-    "~" { const TokenTilde }
-    "^" { const TokenCaret }
-    "*" { const TokenStar }
-    "<" { const TokenLt }
-    ">" { const TokenGt }
-    ">=" { const TokenGte }
-    "<=" { const TokenLte }
-    "=" { const TokenEq }
-    $white* "||" $white* { const TokenOr }
-    X { const TokenX }
-    x { const Token_x }
+    $white+ { tk $ const TokenSpaces }
+    [\-\+]^[\-a-zA-Z0-9]+ { tk TokenIdentifier }
+    "0" { tk $ const $ TokenDigits 0 }
+    [1-9][0-9]* { tk $ TokenDigits . read }
+    "." { tk $ const TokenDot }
+    "-" { tk $ const TokenHyphen }
+    " - " { tk $ const TokenHyphenSep }
+    "+" { tk $ const TokenPlus }
+    "~" { tk $ const TokenTilde }
+    "^" { tk $ const TokenCaret }
+    "*" { tk $ const TokenStar }
+    "<" { tk $ const TokenLt }
+    ">" { tk $ const TokenGt }
+    ">=" { tk $ const TokenGte }
+    "<=" { tk $ const TokenLte }
+    "=" { tk $ const TokenEq }
+    $white* "||" $white* { tk $ const TokenOr }
+    X { tk $ const TokenX }
+    x { tk $ const Token_x }
 
 {
-lexer = alexScanTokens
+alexEOF :: Alex Token
+alexEOF = pure TokenEOF
+
+tk :: (String -> Token) -> AlexInput -> Int -> Alex Token
+tk tokenizer inp n = pure $ tokenizer (readStr inp n)
+
+readStr :: AlexInput -> Int -> String
+readStr (_, _, _, str) n = take n str
 }

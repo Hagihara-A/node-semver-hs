@@ -1,9 +1,11 @@
 {
 module Data.SemVer.Node.Parser(parser) where
 import Data.SemVer.Node.Internal
-import Data.SemVer.Node.Lexer(lexer)
+import Data.SemVer.Node.Lexer
 }
 %expect 0
+%monad { Alex } { >>= } { pure }
+%lexer { lexer } { TokenEOF }
 %name analyze range_set
 %error { parseError }
 %tokentype { Token }
@@ -121,5 +123,13 @@ part :: { Part }
     | identifier_characters { PartId $1 }
 
 {
-parser = analyze . lexer
+parser s = runAlex s analyze
+
+parseError :: Token -> Alex a
+parseError _ = do
+  ((AlexPn _ line column), _, _, _) <- alexGetInput
+  alexError ("parse error at line " ++ (show line) ++ ", column " ++ (show column))
+
+lexer :: (Token -> Alex a) -> Alex a
+lexer = (alexMonadScan >>=)
 }

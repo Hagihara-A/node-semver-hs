@@ -6,12 +6,6 @@ import Data.SemVer.Node (parseRange)
 import Data.Text (Text, unpack)
 import Test.HUnit
 
-unwrap :: Either a b -> b
-unwrap (Right b) = b
-unwrap _ = error "Not a valid varsion"
-
-str2v = unwrap . fromText
-
 rangeExcludeTest :: Test
 rangeExcludeTest =
   TestLabel
@@ -19,12 +13,16 @@ rangeExcludeTest =
     ( TestList $
         map
           ( \(r, v) ->
-              TestCase $ assertBool ("\'" ++ r ++ "\' does not contains \'" ++ unpack v ++ "\'") (not $ satisfies (str2v v) (parseRange r))
+              TestCase $
+                assertEqual
+                  ((unpack . mconcat) ["\'", r, "\' does not contains \'", v, "\'"])
+                  (Right False)
+                  (satisfies <$> fromText v <*> parseRange r)
           )
           fixtures
     )
 
-fixtures :: [(String, Text)]
+fixtures :: [(Text, Text)]
 fixtures =
   [ ("1.0.0 - 2.0.0", "2.2.3"),
     ("1.2.3+asdf - 2.4.3+asdf", "1.2.3-pre.2"),

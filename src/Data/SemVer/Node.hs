@@ -17,10 +17,10 @@ import Data.SemVer.Constraint
   )
 import Data.SemVer.Node.Internal
 import Data.SemVer.Node.Parser (parser)
-import Data.Text (pack)
+import Data.Text (Text, pack, unpack)
 
-parseRange :: String -> Constraint
-parseRange = rangeSetToConstraint . parser
+parseRange :: Text -> Either String Constraint
+parseRange s = rangeSetToConstraint <$> parser (unpack s)
 
 rangeSetToConstraint :: RangeSet -> Constraint
 rangeSetToConstraint [] = CAny

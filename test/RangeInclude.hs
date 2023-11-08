@@ -1,9 +1,9 @@
 module RangeInclude where
 
+import Data.SemVer (fromText)
 import Data.SemVer.Constraint (satisfies)
 import Data.SemVer.Node (parseRange)
-import Data.Text (unpack)
-import RangeExclude (str2v)
+import Data.Text (Text, unpack)
 import Test.HUnit
 
 rangeIncludeTest :: Test
@@ -14,13 +14,15 @@ rangeIncludeTest =
         map
           ( \(range, version) ->
               TestCase $
-                assertBool
-                  (concat ["\'", range, "\' includes \'", unpack version, "\'"])
-                  (satisfies (str2v version) (parseRange range))
+                assertEqual
+                  ((unpack . mconcat) ["\'", range, "\' includes \'", version, "\'"])
+                  (Right True)
+                  (satisfies <$> fromText version <*> parseRange range)
           )
           fixtures
     )
 
+fixtures :: [(Text, Text)]
 fixtures =
   [ ("1.0.0 - 2.0.0", "1.2.3"),
     ("^1.2.3+build", "1.2.3"),
@@ -29,7 +31,7 @@ fixtures =
     --   ("1.2.3pre+asdf - 2.4.3-pre+asdf", "1.2.3", true),
     --   ("1.2.3-pre+asdf - 2.4.3pre+asdf", "1.2.3", true),
     --   ("1.2.3pre+asdf - 2.4.3pre+asdf", "1.2.3", true),
-    ("1.2.3-pre+asdf - 2.4.3-pre+asdf", "1.2.3-pre.2"), 
+    ("1.2.3-pre+asdf - 2.4.3-pre+asdf", "1.2.3-pre.2"),
     ("1.2.3-pre+asdf - 2.4.3-pre+asdf", "2.4.3-alpha"),
     ("1.2.3+asdf - 2.4.3+asdf", "1.2.3"),
     ("1.0.0", "1.0.0"),

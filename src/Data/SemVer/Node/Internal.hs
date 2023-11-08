@@ -66,9 +66,6 @@ type IdentifierCharacters = String
 
 type Digits = Int
 
-parseError :: [Token] -> a
-parseError tk = error ("Parse Error" ++ show tk)
-
 data Token
   = TokenIdentifier IdentifierCharacters
   | TokenDigits Digits
@@ -88,4 +85,5 @@ data Token
   | TokenX
   | Token_x
   | TokenSpaces
+  | TokenEOF
   deriving (Show, Eq)

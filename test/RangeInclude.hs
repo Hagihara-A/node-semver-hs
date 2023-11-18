@@ -1,4 +1,4 @@
-module RangeInclude where
+module RangeInclude(rangeIncludeTest) where
 
 import Data.SemVer (fromText)
 import Data.SemVer.Constraint (satisfies)

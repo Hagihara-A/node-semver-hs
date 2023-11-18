@@ -1,5 +1,7 @@
-module Main where
+module Main (main) where
 
+import MaxSatisfying (maxSatisfyingTest)
+import MinSatisfying (minSatisfyingTest)
 import RangeExclude (rangeExcludeTest)
 import RangeInclude (rangeIncludeTest)
 import Test.HUnit
@@ -7,7 +9,7 @@ import Test.HUnit
 testRoot :: Test
 testRoot =
   TestList
-    [rangeExcludeTest, rangeIncludeTest]
+    [rangeExcludeTest, rangeIncludeTest, maxSatisfyingTest, minSatisfyingTest]
 
 main :: IO ()
 main = runTestTTAndExit testRoot

@@ -1,4 +1,4 @@
-module RangeExclude where
+module RangeExclude (rangeExcludeTest) where
 
 import Data.SemVer (fromText)
 import Data.SemVer.Constraint (satisfies)

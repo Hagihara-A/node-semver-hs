@@ -20,7 +20,7 @@ import Data.SemVer.Node.Parser (parser)
 import Data.Text (Text, pack, unpack)
 
 parseRange :: Text -> Either String Constraint
-parseRange s = rangeSetToConstraint <$> parser (unpack s)
+parseRange txt = rangeSetToConstraint <$> parser txt
 
 rangeSetToConstraint :: RangeSet -> Constraint
 rangeSetToConstraint [] = CAny
@@ -167,4 +167,4 @@ partsToId = map partToIdentifier
 
 partToIdentifier :: Part -> Identifier
 partToIdentifier (PartNr nr) = numeric nr
-partToIdentifier (PartId str) = (fromJust . textual . pack) str
+partToIdentifier (PartId str) = (fromJust . textual) str

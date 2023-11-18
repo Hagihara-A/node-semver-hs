@@ -1,6 +1,8 @@
 -- | This is a almost node-semver compliant parsing and comparing module.
 module Data.SemVer.Node
   ( parseRange,
+    maxSatisfying,
+    minSatisfying,
   )
 where
 
@@ -14,10 +16,25 @@ import Data.SemVer
   )
 import Data.SemVer.Constraint
   ( Constraint (..),
+    satisfies,
   )
 import Data.SemVer.Node.Internal
 import Data.SemVer.Node.Parser (parser)
-import Data.Text (Text, pack, unpack)
+import Data.Text (Text)
+
+maxSatisfying :: Constraint -> [Version] -> Maybe Version
+maxSatisfying constr vers = case satisfying of
+  [] -> Nothing
+  vers' -> Just $ maximum vers'
+  where
+    satisfying = filter (`satisfies` constr) vers
+
+minSatisfying :: Constraint -> [Version] -> Maybe Version
+minSatisfying constr vers = case satisfying of
+  [] -> Nothing
+  vers' -> Just $ minimum vers'
+  where
+    satisfying = filter (`satisfies` constr) vers
 
 parseRange :: Text -> Either String Constraint
 parseRange txt = rangeSetToConstraint <$> parser txt

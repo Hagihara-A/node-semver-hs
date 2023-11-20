@@ -102,27 +102,30 @@ data Token
 -- This code is in the PUBLIC DOMAIN; you may copy it freely and use
 -- it for any purpose whatsoever.
 
-type AlexInput =
-  ( AlexPosn, -- current position,
-    Char, -- previous char
-    [Byte], -- pending bytes on current char
-    Data.Text.Text -- current input string
-  )
+data AlexInput = AlexInput
+  { -- | current position,
+    alexInPosn :: AlexPosn,
+    -- | previous char
+    alexInPrevC :: Char,
+    -- | pending bytes on current char
+    alexInBytes :: [Byte],
+    -- | current input string
+    alexInText :: Data.Text.Text
+  }
 
 type Byte = Word8
 
 alexInputPrevChar :: AlexInput -> Char
-alexInputPrevChar (_, c, _, _) = c
+alexInputPrevChar = alexInPrevC
 
 alexGetByte :: AlexInput -> Maybe (Byte, AlexInput)
-alexGetByte (p, c, b : bs, s) = Just (b, (p, c, bs, s))
-alexGetByte (p, _, [], s) = case Data.Text.uncons s of
-  Just (c, cs) ->
+alexGetByte inp@AlexInput {alexInBytes = [], alexInText = txt, alexInPosn = p} =
+  do
+    (c, cs) <- Data.Text.uncons txt
     let p' = alexMove p c
-     in case utf8Encode' c of
-          (b, bs) -> p' `seq` Just (b, (p', c, bs, cs))
-  Nothing ->
-    Nothing
+        (b, bs) = utf8Encode' c
+     in p' `seq` Just (b, inp {alexInPosn = p', alexInPrevC = c, alexInBytes = bs, alexInText = cs})
+alexGetByte inp@AlexInput {alexInBytes = b : bs} = Just (b, inp {alexInBytes = bs})
 
 -- alex provides the following functions to the user:
 -- alexScan ::
@@ -199,16 +202,13 @@ alexMove (AlexPn a l _) '\n' = AlexPn (a + 1) (l + 1) 1
 alexMove (AlexPn a l c) _ = AlexPn (a + 1) l (c + 1)
 
 ignorePendingBytes :: AlexInput -> AlexInput
-ignorePendingBytes (p, c, _, s) = (p, c, [], s)
+ignorePendingBytes inp = inp {alexInBytes = []}
 
 -- -----------------------------------------------------------------------------
 -- Monad
 
 data AlexState = AlexState
-  { alex_pos :: !AlexPosn, -- position at current input location
-    alex_inp :: Data.Text.Text,
-    alex_chr :: !Char,
-    alex_bytes :: [Byte],
+  { alexStateInp :: AlexInput,
     alex_scd :: !Int -- the current startcode
   }
 
@@ -217,22 +217,25 @@ runAlex input__ f = evalStateT f initAlexState
   where
     initAlexState =
       AlexState
-        { alex_bytes = [],
-          alex_pos = alexStartPos,
-          alex_inp = input__,
-          alex_chr = '\n',
-          alex_scd = 0
+        { alex_scd = 0,
+          alexStateInp =
+            AlexInput
+              { alexInPosn = alexStartPos,
+                alexInBytes = [],
+                alexInPrevC = '\n',
+                alexInText = input__
+              }
         }
 
 type Alex a = StateT AlexState (Either String) a
 
 alexGetInput :: Alex AlexInput
-alexGetInput = gets (\s -> (alex_pos s, alex_chr s, alex_bytes s, alex_inp s))
+alexGetInput = gets alexStateInp
 
 alexSetInput :: AlexInput -> Alex ()
-alexSetInput (pos, c, bs, inp) =
+alexSetInput inp =
   modify'
-    (\s -> s {alex_pos = pos, alex_chr = c, alex_bytes = bs, alex_inp = inp})
+    (\s -> s {alexStateInp = inp})
 
 alexError :: String -> Alex a
 alexError message = lift $ Left message
@@ -250,14 +253,17 @@ token :: Token -> AlexInput -> Int -> Alex Token
 token tk _ _ = pure tk
 
 readTokenDigits :: AlexInput -> Int -> Alex Token
-readTokenDigits (_, _, _, txt) len = do
+readTokenDigits AlexInput {alexInText = txt} len = do
   let taken = Data.Text.take len txt
   lift (TokenDigits . fst <$> decimal taken)
 
 readTokenIdentifier :: AlexInput -> Int -> Alex Token
-readTokenIdentifier (_, _, _, txt) len = do
+readTokenIdentifier AlexInput {alexInText = txt} len = do
   let taken = Data.Text.take len txt
   pure (TokenIdentifier taken)
 
-takeInputText :: AlexInput -> Int -> Data.Text.Text
-takeInputText (_, _, _, txt) _ = txt
+parseError :: Token -> Alex a
+parseError _ = do
+  (AlexInput {alexInPosn = (AlexPn _ line column)}) <- alexGetInput
+  alexError ("parse error at line " ++ show line ++ ", column " ++ show column)
+

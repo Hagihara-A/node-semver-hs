@@ -125,11 +125,7 @@ part :: { Part }
 {
 parser s = runAlex s analyze
 
-parseError :: Token -> Alex a
-parseError _ = do
-  ((AlexPn _ line column), _, _, _) <- alexGetInput
-  alexError ("parse error at line " ++ (show line) ++ ", column " ++ (show column))
-
 lexer :: (Token -> Alex a) -> Alex a
 lexer = (alexMonadScan >>=)
+
 }

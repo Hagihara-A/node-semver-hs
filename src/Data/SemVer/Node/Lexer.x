@@ -31,7 +31,7 @@ alexMonadScan = do
   sc <- alexGetStartCode
   case alexScan inp sc of
     AlexEOF -> alexEOF
-    AlexError (AlexPn _ line column, _, _, _) ->
+    AlexError AlexInput{alexInPosn = (AlexPn _ line column)} ->
       alexError $ "lexical error at line " ++ show line ++ ", column " ++ show column
     AlexSkip inp' _ -> do
       alexSetInput inp'

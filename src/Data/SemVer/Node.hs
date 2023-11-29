@@ -74,7 +74,7 @@ instance ToConstraint Primitive where
   toConstraint (Primitive CompLt p) = CLt (minPartial p)
   toConstraint (Primitive CompGt p) = case upperBound p of
     -- Left (P3 v) -> CGt v
-    Nothing -> CLt $ version 0 0 0 pre0 []
+    Nothing -> CLt leastVersion
     Just v -> case p of
       Partial3 {} -> CGt v
       _ -> CGtEq v
@@ -94,15 +94,15 @@ instance ToConstraint Partial where
         nr2
         nr3
         (Qualifier pre build)
-      ) = CEq (version nr1 nr2 nr3 (partsToId pre) (partsToId build))
+      ) = CEq (version' nr1 nr2 nr3 pre build)
   toConstraint (Partial2 nr1 nr2) = CAnd (CGtEq lower) (CLt upper)
     where
-      lower = version nr1 nr2 0 [] []
-      upper = version nr1 (nr2 + 1) 0 [] []
+      lower = versionCore nr1 nr2 0
+      upper = versionCore nr1 (nr2 + 1) 0
   toConstraint (Partial1 nr1) = CAnd (CGtEq lower) (CLt upper)
     where
-      lower = version nr1 0 0 [] []
-      upper = version (nr1 + 1) 0 0 pre0 []
+      lower = versionCore nr1 0 0
+      upper = versionCorePre0 (nr1 + 1) 0 0
   toConstraint Partial0 = CAny
 
 instance ToConstraint Tilde where
@@ -110,8 +110,8 @@ instance ToConstraint Tilde where
     (Tilde (Partial3 nr1 nr2 nr3 (Qualifier pre _))) =
       CAnd (CGtEq lower) (CLt upper)
       where
-        lower = version nr1 nr2 nr3 (partsToId pre) []
-        upper = version nr1 (nr2 + 1) 0 pre0 []
+        lower = version' nr1 nr2 nr3 pre []
+        upper = versionCorePre0 nr1 (nr2 + 1) 0
   toConstraint (Tilde p) = toConstraint p
 
 instance ToConstraint Caret where
@@ -119,69 +119,80 @@ instance ToConstraint Caret where
     (Caret (Partial3 0 0 nr3 (Qualifier pre _))) =
       CAnd (CGtEq lower) (CLt upper)
       where
-        lower = version 0 0 nr3 (partsToId pre) []
-        upper = version 0 0 (nr3 + 1) pre0 []
+        lower = version' 0 0 nr3 pre []
+        upper = versionCorePre0 0 0 (nr3 + 1)
   toConstraint
     (Caret (Partial3 0 nr2 nr3 (Qualifier pre _))) =
       CAnd (CGtEq lower) (CLt upper)
       where
-        lower = version 0 nr2 nr3 (partsToId pre) []
-        upper = version 0 (nr2 + 1) 0 pre0 []
+        lower = version' 0 nr2 nr3 pre []
+        upper = versionCorePre0 0 (nr2 + 1) 0
   toConstraint
     (Caret (Partial3 nr1 nr2 nr3 (Qualifier pre _))) =
       CAnd (CGtEq lower) (CLt upper)
       where
-        lower = version nr1 nr2 nr3 (partsToId pre) []
-        upper = version (nr1 + 1) 0 0 pre0 []
+        lower = version' nr1 nr2 nr3 pre []
+        upper = versionCorePre0 (nr1 + 1) 0 0
   toConstraint
     (Caret (Partial2 0 nr2)) =
       CAnd (CGtEq lower) (CLtEq upper)
       where
-        lower = version 0 nr2 0 [] []
-        upper = version 0 (nr2 + 1) 0 pre0 []
+        lower = versionCore 0 nr2 0
+        upper = versionCorePre0 0 (nr2 + 1) 0
   toConstraint
     (Caret (Partial2 nr1 nr2)) =
       CAnd (CGtEq lower) (CLtEq upper)
       where
-        lower = version nr1 nr2 0 [] []
-        upper = version (nr1 + 1) 0 0 pre0 []
+        lower = versionCore nr1 nr2 0
+        upper = versionCorePre0 (nr1 + 1) 0 0
   toConstraint
     (Caret (Partial1 nr1)) =
       CAnd (CGtEq lower) (CLtEq upper)
       where
-        lower = version nr1 0 0 [] []
-        upper = version (nr1 + 1) 0 0 pre0 []
+        lower = versionCore nr1 0 0
+        upper = versionCorePre0 (nr1 + 1) 0 0
   toConstraint (Caret Partial0) = CAny
 
 -- | Example: 1.2 -> 1.3.0
 -- Note that this is not least upper bound. Least upper bound is 1.3.0-0.
 upperBound :: Partial -> Maybe Version
 upperBound Partial0 = Nothing
-upperBound (Partial1 nr1) = Just $ version (nr1 + 1) 0 0 [] []
-upperBound (Partial2 nr1 nr2) = Just $ version nr1 (nr2 + 1) 0 [] []
+upperBound (Partial1 nr1) = Just $ versionCore (nr1 + 1) 0 0
+upperBound (Partial2 nr1 nr2) = Just $ versionCore nr1 (nr2 + 1) 0
 upperBound (Partial3 nr1 nr2 nr3 (Qualifier pre _)) =
-  Just $ version nr1 nr2 nr3 (partsToId pre) []
+  Just $ version' nr1 nr2 nr3 pre []
 
 -- | Example: 1.2 -> 1.3.0-0
 leastUpperBound :: Partial -> Maybe Version
 leastUpperBound Partial0 = Nothing
-leastUpperBound (Partial1 nr1) = Just $ version (nr1 + 1) 0 0 pre0 []
-leastUpperBound (Partial2 nr1 nr2) = Just $ version nr1 (nr2 + 1) 0 pre0 []
+leastUpperBound (Partial1 nr1) = Just $ versionCorePre0 (nr1 + 1) 0 0
+leastUpperBound (Partial2 nr1 nr2) = Just $ versionCorePre0 nr1 (nr2 + 1) 0
 leastUpperBound (Partial3 nr1 nr2 nr3 (Qualifier pre _)) =
-  Just $ version nr1 nr2 nr3 (partsToId pre) [] -- In this case, given partial contains exactly one element. Thus, least upper bound is same as the element.
+  Just $ version' nr1 nr2 nr3 pre [] -- In this case, given partial contains exactly one element. Thus, least upper bound is same as the element.
 
 minPartial :: Partial -> Version
-minPartial Partial0 = version 0 0 0 [] []
-minPartial (Partial1 nr1) = version nr1 0 0 [] []
-minPartial (Partial2 nr1 nr2) = version nr1 nr2 0 [] []
-minPartial (Partial3 nr1 nr2 nr3 (Qualifier pre _)) = version nr1 nr2 nr3 (partsToId pre) []
-
-pre0 :: [Identifier]
-pre0 = [numeric 0]
+minPartial Partial0 = versionCore 0 0 0
+minPartial (Partial1 nr1) = versionCore nr1 0 0
+minPartial (Partial2 nr1 nr2) = versionCore nr1 nr2 0
+minPartial (Partial3 nr1 nr2 nr3 (Qualifier pre _)) = version' nr1 nr2 nr3 pre []
 
 partsToId :: Parts -> [Identifier]
 partsToId = map partToIdentifier
+  where
+    partToIdentifier :: Part -> Identifier
+    partToIdentifier (PartNr nr) = numeric nr
+    partToIdentifier (PartId str) = (fromJust . textual) str
 
-partToIdentifier :: Part -> Identifier
-partToIdentifier (PartNr nr) = numeric nr
-partToIdentifier (PartId str) = (fromJust . textual) str
+version' :: Int -> Int -> Int -> Parts -> Parts -> Version
+version' a b c pre build = version a b c (partsToId pre) (partsToId build)
+
+versionCorePre0 :: Int -> Int -> Int -> Version
+versionCorePre0 a b c = version a b c pre0 []
+  where
+    pre0 = [numeric 0]
+
+versionCore :: Int -> Int -> Int -> Version
+versionCore a b c = version a b c [] []
+
+leastVersion :: Version
+leastVersion = versionCorePre0 0 0 0

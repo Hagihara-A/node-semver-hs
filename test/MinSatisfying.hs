@@ -1,25 +1,24 @@
 module MinSatisfying (minSatisfyingTest) where
 
-import Data.Either (fromRight)
-import Data.Maybe (fromJust)
-import Data.SemVer (fromText)
-import Data.SemVer.Node (minSatisfying, parseRange)
-import Data.Text (Text)
-import Test.HUnit
+import Data.SemVer.Node (minSatisfying)
+import Data.Text (Text, intercalate, unpack)
+import Test.Tasty (TestTree, testGroup)
+import Test.Tasty.HUnit (testCase, (@=?))
+import Utils (parseR, parseV)
 
-minSatisfyingTest :: Test
+minSatisfyingTest :: TestTree
 minSatisfyingTest =
-  TestLabel
+  testGroup
     "min satisfying"
-    ( TestList
-        ( map
-            ( \(vers, range, expect) ->
-                let constr = fromRight undefined (parseRange range)
-                    vers' = map (fromRight undefined . fromText) vers
-                 in fromJust (minSatisfying constr vers') ~?= (fromRight undefined . fromText) expect
-            )
-            fixtures
+    ( map
+        ( \(vers, range, expect) ->
+            let constr = parseR range
+                vers' = map parseV vers
+             in testCase
+                  ((unpack . mconcat) [expect, " is the min version satisfyingw ", range, " in ", intercalate ", " vers])
+                  (minSatisfying constr vers' @=? Just (parseV expect))
         )
+        fixtures
     )
 
 fixtures :: [([Text], Text, Text)]

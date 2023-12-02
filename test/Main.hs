@@ -4,12 +4,13 @@ import MaxSatisfying (maxSatisfyingTest)
 import MinSatisfying (minSatisfyingTest)
 import RangeExclude (rangeExcludeTest)
 import RangeInclude (rangeIncludeTest)
-import Test.HUnit
+import Test.Tasty (TestTree, defaultMain, testGroup)
 
-testRoot :: Test
+testRoot :: TestTree
 testRoot =
-  TestList
+  testGroup
+    "node-semver"
     [rangeExcludeTest, rangeIncludeTest, maxSatisfyingTest, minSatisfyingTest]
 
 main :: IO ()
-main = runTestTTAndExit testRoot
+main = defaultMain testRoot

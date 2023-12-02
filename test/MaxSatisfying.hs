@@ -1,25 +1,24 @@
 module MaxSatisfying (maxSatisfyingTest) where
 
-import Data.Either (fromRight)
-import Data.Maybe (fromJust)
-import Data.SemVer (fromText)
-import Data.SemVer.Node (maxSatisfying, parseRange)
-import Data.Text (Text)
-import Test.HUnit
+import Data.SemVer.Node (maxSatisfying)
+import Data.Text (Text, intercalate, unpack)
+import Test.Tasty (TestTree, testGroup)
+import Test.Tasty.HUnit (testCase, (@=?))
+import Utils (parseR, parseV)
 
-maxSatisfyingTest :: Test
+maxSatisfyingTest :: TestTree
 maxSatisfyingTest =
-  TestLabel
+  testGroup
     "max satisfying"
-    ( TestList
-        ( map
-            ( \(vers, range, expect) ->
-                let constr = fromRight undefined (parseRange range)
-                    vers' = map (fromRight undefined . fromText) vers
-                 in fromJust (maxSatisfying constr vers') ~?= (fromRight undefined . fromText) expect
-            )
-            fixtures
+    ( map
+        ( \(vers, range, expect) ->
+            let constr = parseR range
+                vers' = map parseV vers
+             in testCase
+                  ((unpack . mconcat) [expect, " is the max version satisfying ", range, " in ", intercalate ", " vers])
+                  (maxSatisfying constr vers' @=? Just (parseV expect))
         )
+        fixtures
     )
 
 fixtures :: [([Text], Text, Text)]

@@ -1,25 +1,23 @@
-module RangeInclude(rangeIncludeTest) where
+module RangeInclude (rangeIncludeTest) where
 
 import Data.SemVer (fromText)
 import Data.SemVer.Constraint (satisfies)
 import Data.SemVer.Node (parseRange)
 import Data.Text (Text, unpack)
-import Test.HUnit
+import Test.Tasty (TestTree, testGroup)
+import Test.Tasty.HUnit ( testCase, (@=?))
 
-rangeIncludeTest :: Test
+rangeIncludeTest :: TestTree
 rangeIncludeTest =
-  TestLabel
+  testGroup
     "RangeInclude"
-    ( TestList $
-        map
-          ( \(range, version) ->
-              TestCase $
-                assertEqual
-                  ((unpack . mconcat) ["\'", range, "\' includes \'", version, "\'"])
-                  (Right True)
-                  (satisfies <$> fromText version <*> parseRange range)
-          )
-          fixtures
+    ( map
+        ( \(range, version) ->
+            testCase
+              ((unpack . mconcat) ["\'", range, "\' includes \'", version, "\'"])
+              (Right True @=? (satisfies <$> fromText version <*> parseRange range))
+        )
+        fixtures
     )
 
 fixtures :: [(Text, Text)]

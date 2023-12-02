@@ -4,22 +4,19 @@ import Data.SemVer (fromText)
 import Data.SemVer.Constraint (satisfies)
 import Data.SemVer.Node (parseRange)
 import Data.Text (Text, unpack)
-import Test.HUnit
+import Test.Tasty (TestTree, testGroup)
+import Test.Tasty.HUnit (testCase, (@=?))
 
-rangeExcludeTest :: Test
+rangeExcludeTest :: TestTree
 rangeExcludeTest =
-  TestLabel
+  testGroup
     "RangeExclude"
-    ( TestList $
-        map
-          ( \(r, v) ->
-              TestCase $
-                assertEqual
-                  ((unpack . mconcat) ["\'", r, "\' does not contains \'", v, "\'"])
-                  (Right False)
-                  (satisfies <$> fromText v <*> parseRange r)
-          )
-          fixtures
+    ( map
+        ( \(r, v) ->
+            testCase ((unpack . mconcat) ["\'", r, "\' does not contains \'", v, "\'"]) $
+              Right False @=? (satisfies <$> fromText v <*> parseRange r)
+        )
+        fixtures
     )
 
 fixtures :: [(Text, Text)]

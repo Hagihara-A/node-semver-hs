@@ -53,5 +53,10 @@ tests:
       - tasty
       - tasty-hunit
 
-      - semver
-      - text
+benchmarks:
+  benchmark:
+    main: Main.hs
+    source-dirs: bench
+    dependencies:
+      - node-semver-hs
+      - tasty-bench

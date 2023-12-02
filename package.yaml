@@ -16,32 +16,25 @@ extra-source-files:
 # common to point users to the README.md file.
 # description: Please see the README on GitHub at <https://github.com/githubuser/npm-instsall-hs#readme>
 
-dependencies:
-  - base >= 4.7 && < 5
-  - semver
-  - transformers
 
 ghc-options:
   - -Wall
-  - -Wcompat
-  - -Widentities
-  - -Wincomplete-record-updates
-  - -Wincomplete-uni-patterns
-  - -Wmissing-export-lists
-  - -Wmissing-home-modules
-  - -Wpartial-fields
-  - -Wredundant-constraints
 
 default-extensions:
   - ImportQualifiedPost
   - OverloadedStrings
 
+dependencies:
+  - base
+  - semver
+  - text
+
+
 library:
   source-dirs: src
   dependencies:
-    - semver
-    - text
     - array >= 0.5
+    - transformers
   build-tools:
     - happy >= 1.20
     - alex >= 3.3
@@ -49,19 +42,16 @@ library:
     - Data.SemVer.Node.Parser
     - Data.SemVer.Node.Lexer
     - Data.SemVer.Node
-  other-modules:
-    - Data.SemVer.Node.Internal
 
 tests:
   test:
-    main: Spec.hs
+    main: Main.hs
     source-dirs: test
-    ghc-options:
-      - -threaded
-      - -rtsopts
-      - -with-rtsopts=-N
     dependencies:
       - node-semver-hs
       - HUnit
+      - tasty
+      - tasty-hunit
+
       - semver
       - text

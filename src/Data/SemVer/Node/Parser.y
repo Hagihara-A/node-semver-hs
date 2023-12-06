@@ -1,7 +1,9 @@
 {
 module Data.SemVer.Node.Parser(parser) where
+import Data.SemVer.Node.Lexer(alexMonadScan)
 import Data.SemVer.Node.Internal
-import Data.SemVer.Node.Lexer
+import Data.SemVer.Node.AST
+import Data.SemVer.Node.Token
 }
 %expect 0
 %monad { Alex } { >>= } { pure }

@@ -16,7 +16,6 @@ extra-source-files:
 # common to point users to the README.md file.
 # description: Please see the README on GitHub at <https://github.com/githubuser/npm-instsall-hs#readme>
 
-
 ghc-options:
   - -Wall
 
@@ -29,7 +28,6 @@ dependencies:
   - semver
   - text
 
-
 library:
   source-dirs: src
   dependencies:
@@ -39,9 +37,11 @@ library:
     - happy >= 1.20
     - alex >= 3.3
   exposed-modules:
+    - Data.SemVer.Node
     - Data.SemVer.Node.Parser
     - Data.SemVer.Node.Lexer
-    - Data.SemVer.Node
+    - Data.SemVer.Node.Token
+    - Data.SemVer.Node.AST
 
 tests:
   test:

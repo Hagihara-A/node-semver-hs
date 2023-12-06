@@ -18,7 +18,7 @@ import Data.SemVer.Constraint
   ( Constraint (..),
     satisfies,
   )
-import Data.SemVer.Node.Internal
+import Data.SemVer.Node.AST
 import Data.SemVer.Node.Parser (parser)
 import Data.Text (Text)
 

@@ -1,6 +1,7 @@
 {
 module Data.SemVer.Node.Lexer where
 import Data.SemVer.Node.Internal
+import Data.SemVer.Node.Token
 }
 
 tokens :-

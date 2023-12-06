@@ -23,18 +23,19 @@ import Data.SemVer.Node.Parser (parser)
 import Data.Text (Text)
 
 maxSatisfying :: Constraint -> [Version] -> Maybe Version
-maxSatisfying constr vers = case satisfying of
-  [] -> Nothing
-  vers' -> Just $ maximum vers'
-  where
-    satisfying = filter (`satisfies` constr) vers
+maxSatisfying constr vers = findSatisfying max (filter (`satisfies` constr) vers)
 
 minSatisfying :: Constraint -> [Version] -> Maybe Version
-minSatisfying constr vers = case satisfying of
-  [] -> Nothing
-  vers' -> Just $ minimum vers'
-  where
-    satisfying = filter (`satisfies` constr) vers
+minSatisfying constr vers = findSatisfying min (filter (`satisfies` constr) vers)
+
+findSatisfying :: (Foldable t) => (a -> a -> a) -> t a -> Maybe a
+findSatisfying selector =
+  foldr
+    ( \e acc -> case acc of
+        Nothing -> Just e
+        Just acc' -> Just $ selector e acc'
+    )
+    Nothing
 
 parseRange :: Text -> Either String Constraint
 parseRange txt = rangeSetToConstraint <$> parser txt

@@ -34,12 +34,12 @@ alexInputPrevChar :: AlexInput -> Char
 alexInputPrevChar = alexInPrevC
 
 alexGetByte :: AlexInput -> Maybe (Byte, AlexInput)
-alexGetByte inp@AlexInput {alexInBytes = [], alexInText = txt, alexInPosn = p} =
+alexGetByte AlexInput {alexInBytes = [], alexInText = txt, alexInPosn = p} =
   do
     (c, cs) <- Data.Text.uncons txt
     let p' = alexMove p c
         (b, bs) = utf8Encode' c
-     in p' `seq` Just (b, inp {alexInPosn = p', alexInPrevC = c, alexInBytes = bs, alexInText = cs})
+     in Just (b, AlexInput {alexInPosn = p', alexInPrevC = c, alexInBytes = bs, alexInText = cs})
 alexGetByte inp@AlexInput {alexInBytes = b : bs} = Just (b, inp {alexInBytes = bs})
 
 -- alex provides the following functions to the user:
@@ -63,10 +63,6 @@ alexGetByte inp@AlexInput {alexInBytes = b : bs} = Just (b, inp {alexInBytes = b
 -- type AlexAction result = AlexInput -> Int -> Alex result
 -- { ... }  :: AlexAction result
 -- type AlexAction result = AlexInput -> Int -> Alex result
-
--- | Encode a Haskell String to a list of Word8 values, in UTF8 format.
-utf8Encode :: Char -> [Word8]
-utf8Encode = uncurry (:) . utf8Encode'
 
 utf8Encode' :: Char -> (Word8, [Word8])
 utf8Encode' c = case go (ord c) of

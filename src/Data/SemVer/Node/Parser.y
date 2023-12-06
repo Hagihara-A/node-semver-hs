@@ -63,15 +63,10 @@ primitive :: { Primitive }
 
 compare :: { Compare }
     : '<' { CompLt }
-    | '<' spaces { CompLt }
     | '>' { CompGt }
-    | '>' spaces { CompGt }
     | '>=' { CompGte }
-    | '>=' spaces { CompGte }
     | '<=' { CompLte }
-    | '<=' spaces { CompLte }
     | '=' { CompEq }
-    | '=' spaces { CompEq }
 
 partial :: { Partial }
     : x { Partial0 }

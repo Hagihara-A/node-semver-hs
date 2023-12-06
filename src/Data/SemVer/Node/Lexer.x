@@ -11,16 +11,16 @@ tokens :-
     [1-9][0-9]* { readTokenDigits }
     "." { token TokenDot }
     "-" { token TokenHyphen }
-    " - " { token TokenHyphenSep }
+    $white* " - " $white* { token TokenHyphenSep }
     "+" { token TokenPlus }
-    "~" { token TokenTilde }
-    "^" { token TokenCaret }
+    "~" $white* { token TokenTilde }
+    "^" $white* { token TokenCaret }
     "*" { token TokenStar }
-    "<" { token TokenLt }
-    ">" { token TokenGt }
-    ">=" { token TokenGte }
-    "<=" { token TokenLte }
-    "=" { token TokenEq }
+    "<" $white* { token TokenLt }
+    ">" $white* { token TokenGt }
+    ">=" $white* { token TokenGte }
+    "<=" $white* { token TokenLte }
+    "=" $white* { token TokenEq }
     $white* "||" $white* { token TokenOr }
     X { token TokenX }
     x { token Token_x }
